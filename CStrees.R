@@ -14,12 +14,15 @@ TwoDpartitions <- list(list(list(1,1)),
                        list(list(1,3),list(2,4)),
                        list(list(1,2),list(3,4)),
                        list(list(1,2,3,4)))
-# start of creating 3dpartitions, reading from file Note: load the functions f,g,h from the Read3DCStrees.R
+# start of creating 3dpartitions, reading from file. *Note*: load the functions f,g,h from the Read3DCStrees.R
 z<-readLines(con = "threeDpartitions.txt")
 listOfchars <- lapply(z, h)
 ThreeDpartitions <-lapply(listOfchars,f)
 # start of creating 4dpartitions, reading from file
-
+z<-readLines(con = "fourDpartitions.txt")
+listOfchars <- lapply(z, h)
+FourDpartitions <-lapply(listOfchars,f)
+length(FourDpartitions)
 ##### A list of lists where the i-th entry is the partitions of the i-dimensional cube.
 ComputedPartitions = list(OneDpartitions,TwoDpartitions,TwoDpartitions,TwoDpartitions)
 
