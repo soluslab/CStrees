@@ -43,6 +43,7 @@ z<-readLines(con = "threeDpartitions.txt")
 listOfchars <- lapply(z, h)
 ThreeDpartitions <-lapply(listOfchars,f)
 ThreeDpartitions <-lapply(ThreeDpartitions,k)
+ThreeDpartitions <- c(ThreeDpartitions,list(list(list("1","1"))))
 length(ThreeDpartitions)
 
 ### This part creates the FourDpartitions
@@ -50,6 +51,7 @@ z<-readLines(con = "fourDpartitions.txt")
 listOfchars <- lapply(z, h)
 FourDpartitions <-lapply(listOfchars,f)
 FourDpartitions <-lapply(FourDpartitions,k)
+FourDpartitions <- c(FourDpartitions,list(list(list("1","1"))))
 length(FourDpartitions)
 
 ##### A list of lists where the i-th entry is the partitions of the i-dimensional cube.
@@ -134,15 +136,16 @@ CStrees <- function(p,d) {
     model.CS <- sevt(Vars,full=TRUE)
     for (L in Parts) {
       M <- model.CS
-      for ( j in c(1:(p-1))) {
-        if (class(L[[j]][[1]]) == "numeric") {
-          if (L[[j]][[1]] != L[[j]][[2]]) {
-            for (r in c(2:length(L[[j]]))) {
-              k<-j+1
-              M <- join_stages(M,paste("V",Perms[[i]][[k]],sep = ""),L[[j]][[1]],L[[j]][[r]])
-            }
-          }
-        } else {
+ #     for ( j in c(1:(p-1))) {
+ #       if (class(L[[j]][[1]]) == "numeric") {
+ #         if (L[[j]][[1]] != L[[j]][[2]]) {
+ #           for (r in c(2:length(L[[j]]))) {
+ #             k<-j+1
+ #             M <- join_stages(M,paste("V",Perms[[i]][[k]],sep = ""),L[[j]][[1]],L[[j]][[r]])
+ #           }
+ #         }
+ #       } else {
+        for (j in c(1:(p-1))) {
           t <- length(L[[j]])
           for (s in c(1:t)) {
             for (r in c(2:length(L[[j]][[s]]))) {
@@ -153,7 +156,7 @@ CStrees <- function(p,d) {
             }
           }
         }
-      }
+    
       models <-c(models,list(M))
     }
   }
@@ -188,7 +191,7 @@ optTrees = list(1)
 for (i in c(1:length(CStreesList))) {
   N.fit <- sevt_fit(CStreesList[[i]],data=myData,lambda=1)
   s <- BIC(N.fit)
-  if (t < s) {
+  if (t > s) {
     MM <- N.fit
     t <- s
     optTrees <- list(i)
@@ -211,6 +214,94 @@ names(lizards)
 levels(lizards$Species)
 levels(lizards$Diameter)
 levels(lizards$Height)
+
+
+##### Fitting a CStree to a data set for coronary heart data set.
+data(coronary) #dataset available within the bnlearn library
+myData <- coronary
+names(myData) <- c("V1","V2","V3","V4","V5","V6") #this function relabels the variables in the dataset with the variable names produced by CStrees(p,d)
+levels(myData$V1) <- c(1:2)
+levels(myData$V2) <- c(1:2)
+levels(myData$V3) <- c(1:2)
+levels(myData$V4) <- c(1:2)
+levels(myData$V5) <- c(1:2)
+levels(myData$V6) <- c(1:2)
+myData <- subset(myData,select = -c(V4,V5,V6)) #truncate to only variables S, M Work, and P Work.
+CStreesList3 <- CStrees(3,2) # We look for context-specific structure amongst these three environmental factors.
+M <- CStreesList3[[1]]
+M.fit <- sevt_fit(M,data=myData,lambda=1)
+t <- BIC(M.fit)
+MM <- M.fit
+for (N in CStreesList3) {
+  N.fit <- sevt_fit(N,data=myData,lambda=1)
+  s <- BIC(N.fit)
+  if (t > s) {
+    MM <- N.fit
+    t <- s
+  }
+}
+plot(MM)
+summary(MM)
+t
+
+
+##### Fitting a CStree to a data set for coronary heart data set for a different four variables.  
+##### Here we select a single one of the environment factors considered above and compare it with the other three biological indicators.
+data(coronary) #dataset available within the bnlearn library
+myData <- coronary
+names(myData) <- c("V1","V5","V6","V2","V3","V4") #Relabels the variables in the dataset with the variable names produced by CStrees(p,d)
+levels(myData$V1) <- c(1:2)
+levels(myData$V2) <- c(1:2)
+levels(myData$V3) <- c(1:2)
+levels(myData$V4) <- c(1:2)
+levels(myData$V5) <- c(1:2)
+levels(myData$V6) <- c(1:2)
+myData <- subset(myData,select = -c(V5,V6)) #truncate the data set to include a single covariate from S, M Work, and P Work. In this example, we include S.
+CStreesList <- CStrees(4,2) # Although the data set has 6 variables we fit a model to only the first four.
+M <- CStreesList[[1]]
+M.fit <- sevt_fit(M,data=myData,lambda=1)
+t <- BIC(M.fit)
+MM <- M.fit
+for (N in CStreesList) {
+  N.fit <- sevt_fit(N,data=myData,lambda=1)
+  s <- BIC(N.fit)
+  if (t > s) {
+    MM <- N.fit
+    t <- s
+  }
+}
+plot(MM)
+summary(MM)
+t
+
+
+##### Fitting a CStree to a data set for Vitamin D deficiency data set.
+data(VitD) #dataset available within the ivtools library
+myData <- VitD
+myData <- subset(myData,select = -c(filaggrin,death)) #truncate the data set to remove all discrete rows.
+myData <- discretize(myData,method="quantile",breaks=2) #discretize all non-discrete variables.
+myData <- cbind(myData,VitD$death) #append non-interventional discrete variable back into data frame.
+names(myData) <- c("V1","V2","V3","V4") #Relabel the variables in the dataset with the variable names produced by CStrees(p,d)
+levels(myData$V1) <- c(1:2)
+levels(myData$V2) <- c(1:2)
+levels(myData$V3) <- c(1:2)
+levels(myData$V4) <- c(1:2)
+CStreesList <- CStrees(4,2)
+M <- CStreesList[[1]]
+M.fit <- sevt_fit(M,data=myData,lambda=1)
+t <- BIC(M.fit)
+MM <- M.fit
+for (N in CStreesList) {
+  N.fit <- sevt_fit(N,data=myData,lambda=1)
+  s <- BIC(N.fit)
+  if (t > s) {
+    MM <- N.fit
+    t <- s
+  }
+}
+plot(MM)
+summary(MM)
+t
 
 
 
