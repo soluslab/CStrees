@@ -276,6 +276,10 @@ t
 
 
 ##### Fitting a CStree to a data set for Vitamin D deficiency data set.
+# This data set is contained in the package ivtools
+library("ivtools")
+library("entropy")
+#######
 data(VitD) #dataset available within the ivtools library
 myData <- VitD
 myData <- subset(myData,select = -c(filaggrin,death)) #truncate the data set to remove all discrete rows.
@@ -407,6 +411,7 @@ plot(TestIntTree)
 summary(TestIntTree)
 
 
+
 # Example on five variables
 TestL <- list(OneDpartitions[[2]],TwoDpartitions[[6]],ThreeDpartitions[[130]],FourDpartitions[[50000]])
 ObsTree <- toCStree(5,2,TestL)
@@ -504,6 +509,67 @@ plot(TestTrees[[1]])
 plot(TestTrees[[2871]])
 summary(TestTrees[[1]])
 summary(TestTrees[[2871]])
+
+#----------------- Interventional CStrees ---------------%
+#Learning an interventionalCStree on three levels using the VitD data
+data(VitD) #dataset available within the bnlearn library
+VitD$ageCat <- cut(VitD$age,c(0,60,80))
+VitD$vitdCat <- cut(VitD$vitd,c(0,30,205))
+VitD$timeCat <- cut(VitD$time, c(0,16,18))
+VitD$filaggrinCat <- cut(VitD$filaggrin,c(-1,0,1))
+VitD$deathCat <- cut(VitD$death,c(-1,0,1))
+myData <- data.frame(VitD$filaggrinCat,VitD$ageCat,VitD$deathCat,VitD$vitdCat) #with filaggrin instead of time
+names(myData) <- c("V1","V2","V3","V4") #This relabels the variables in the dataset with the variable names produced by CStrees(p,2).
+levels(myData$V1) <- c(1:2) #This relabels the outcomes to match the outcome names used by CStrees(p,2).
+levels(myData$V2) <- c(1:2)
+levels(myData$V3) <- c(1:2)
+levels(myData$V4) <- c(1:2)
+# From here on we construct the interventional CStrees
+Parts<- partitions(3)
+listInterventionalCStrees<-list()
+for (part in Parts){
+  ObsTree<-toCStree(3,2,part)
+  Smore <- stages(ObsTree)
+  S<-lapply(Smore, unique)
+  S<-c(list(list(1)),S)
+  newInterventionalTrees <-interventionalCStrees(3,2,part,S)
+  listInterventionalCStrees<-c(listInterventionalCStrees,newInterventionalTrees)
+}
+M<-listInterventionalCStrees[[1]] # initialize with some model
+M.fit <- sevt_fit(M,myData,lambda=1)
+obsM <- subtree(M.fit,c("Obs"))
+intM <- subtree(M.fit,c("Int"))
+stagesByLevel<- lapply(stages(M.fit),unique)
+stagesByLevel<- lapply(stagesByLevel, length)
+numStages<- Reduce("+",stagesByLevel) +1
+numStages
+# Now we evaluate the loglik on each of the subtrees
+t<- (logLik(obsM) + logLik(intM))*2-numStages*log(nrow(myData))
+MM <- M.fit
+for (N in listInterventionalCStrees) {
+  N.fit <- sevt_fit(N,myData,lambda=1)
+  obsM <- subtree(N.fit,c("Obs"))
+  intM <- subtree(N.fit,c("Int"))
+  stagesByLevel<- lapply(stages(N.fit),unique)
+  stagesByLevel<- lapply(stagesByLevel, length)
+  numStages<- Reduce("+",stagesByLevel) +1
+  s <- (logLik(obsM) + logLik(intM))*2-numStages*log(nrow(myData))
+  if (t > s) {
+    MM <- N.fit
+    t <- s
+  }
+}
+
+plot(MM)
+t
+# BIC score for age, vitDlevel Mortality -7741.701
+# BIC score for vitDlevel,age, Mortality -7742.051
+P1fit <-MM
+# BIC score for age, Mortality,vitDlevel -7749.854
+P2fit <- MM
+length(listInterventionalCStrees) #Total number of interventionalCStrees
+plot(listInterventionalCStrees[[300]]) # Testing how one of the interventionalCSTrees looks like
+###--------------------------
 
 
 
