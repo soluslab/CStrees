@@ -571,6 +571,47 @@ length(listInterventionalCStrees) #Total number of interventionalCStrees
 plot(listInterventionalCStrees[[300]]) # Testing how one of the interventionalCSTrees looks like
 ###--------------------------
 
+## Trees in the equivalence class of the learned tree.
+## First tree in the equivalence class
+## Linear extension = 4 1 2 3
+L1 = list(list("1","1"))
+L2 = list(list("1","2","3","4"))
+L3 = list(list("1","3"),list("2","4"),list("5","6","7","8"))
+TT1 <- toCStree(4,2,list(L1,L2,L3))
+plot(newTT)
+## Second tree in the equivalence class
+## Linear extension = 4 2 1 3
+L1 = list(list("1","2"))
+L2 = list(list("1","2"),list("3","4"))
+L3 = list(list("1","2"),list("3","4"),list("5","6","7","8"))
+TT2 <- toCStree(4,2,list(L1,L2,L3))
+## Third tree in the equivalence class
+## Linear extension = 2 4 1 3
+L1 = list(list("1","2"))
+L2 = list(list("1","3"),list("2","4"))
+L3 = list(list("1","2"),list("5","6"),list("3","4","7","8"))
+TT3 <- toCStree(4,2,list(L1,L2,L3))
+# Fourth tree in the equivalence class
+## Linear extension = 1 4 2 3
+L1 = list(list("1","1"))
+L2 = list(list("1","3","2","4"))
+L3 = list(list("1","5"),list("2","6"),list("3","4","7","8"))
+TT4 <- toCStree(4,2,list(L1,L2,L3))
+# Fifth tree in the partition
+## Linear extension = 1 2 4 3
+L1 = list(list("1","2"))
+L2 = list(list("1","2"),list("3","4"))
+L3 = list(list("1","5"),list("3","7"),list("2","4","6","8"))
+TT5 <- toCStree(4,2,list(L1,L2,L3))
+plot(TT5)
+#Sixth tree in the partition
+## Linear extension = 2 1 4 3
+L1 = list(list("1","2"))
+L2 = list(list("1","3"),list("2","4"))
+L3 = list(list("1","3"),list("5","7"),list("2","4","6","8"))
+TT6 <- toCStree(4,2,list(L1,L2,L3))
+
+
 
 
 
