@@ -613,6 +613,38 @@ TT6 <- toCStree(4,2,list(L1,L2,L3))
 
 
 
+## Soil analysis
+dataSoil = read.csv("Dataset_Dec_2019_R1.csv",header=TRUE)
+summary(dataSoil)
+mySoilData = data.frame(dataSoil$Elevation,dataSoil$MAT,dataSoil$All_potential_pathogens,dataSoil$Soil_C)
+summary(mySoilData)
+mySoilData <- discretize(mySoilData,method="quantile",breaks=2) 
+summary(mySoilData)
+names(mySoilData) <- c("V1","V2","V3","V4") #Relabel the variables in the dataset with the variable names produced by CStrees(p,d)
+levels(mySoilData$V1) <- c(1:2)
+levels(mySoilData$V2) <- c(1:2)
+levels(mySoilData$V3) <- c(1:2)
+levels(mySoilData$V4) <- c(1:2)
+CStreesList <- CStrees(4,2)
+M <- CStreesList[[1]]
+M.fit <- sevt_fit(M,data=mySoilData,lambda=1)
+t <- BIC(M.fit)
+MM <- M.fit
+for (N in CStreesList) {
+  N.fit <- sevt_fit(N,data=mySoilData,lambda=1)
+  s <- BIC(N.fit)
+  if (t > s) {
+    MM <- N.fit
+    t <- s
+  }
+}
+plot(MM)
+summary(MM)
+# V1= elevation, V2 = MAT(mean annual temperature), V3 = All pathogens, V4 = soil Carbon
+mySoilData = data.frame(dataSoil$Elevation,dataSoil$MAT,dataSoil$All_potential_pathogens,dataSoil$Soil_C)
+levels(mySoilData$dataSoil.Elevation)
+
+mySoilData$landcover<- dataSoil$Grassland+dataSoil$Forest
 
 
 
