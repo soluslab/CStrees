@@ -281,10 +281,13 @@ library("ivtools")
 library("entropy")
 #######
 data(VitD) #dataset available within the ivtools library
-myData <- VitD
-myData <- subset(myData,select = -c(filaggrin,death)) #truncate the data set to remove all discrete rows.
+myTotalData <- VitD
+
+myObsvData <- myTotalData[which(myTotalData$filaggrin == 0),]
+myData <- subset(myObsvData,select = -c(filaggrin,death)) #truncate the data set to remove all discrete rows.
 myData <- discretize(myData,method="quantile",breaks=2) #discretize all non-discrete variables.
-myData <- cbind(myData,VitD$death) #append non-interventional discrete variable back into data frame.
+myData <- cbind(myData,myObsvData$death) #append non-interventional discrete variable back into data frame.
+names(myData)
 names(myData) <- c("V1","V2","V3","V4") #Relabel the variables in the dataset with the variable names produced by CStrees(p,d)
 levels(myData$V1) <- c(1:2)
 levels(myData$V2) <- c(1:2)
@@ -305,9 +308,13 @@ for (N in CStreesList) {
 }
 plot(MM)
 summary(MM)
+logLik(MM)
 t
 
-
+#--- Summary.
+# N = 2377
+# BIC = 11240.71
+# logLik = -5593.146 (df=7)
 
 
 # Interventional CStrees for one observed distribution and one interventional distribution.
@@ -512,30 +519,52 @@ summary(TestTrees[[2871]])
 
 #----------------- Interventional CStrees ---------------%
 #Learning an interventionalCStree on three levels using the VitD data
+myData <- VitD
+myData <- subset(myData,select = -c(filaggrin,death)) #truncate the data set to remove all discrete rows.
+myData <- discretize(myData,method="quantile",breaks=2) #discretize all non-discrete variables.
+myData <- cbind(myData,VitD$death,VitD$filaggrin) #append non-interventional discrete variable back into data frame.
+names(myData)
+names(myData) <- c("V3","V4","V5","V2","V1") #Relabel the variables in the dataset with the variable names produced by CStrees(p,d)
+levels(myData$V1) <- factor(c("Int","Obs"))
+levels(myData$V2) <- c(1:2)
+levels(myData$V3) <- c(1:2)
+levels(myData$V4) <- c(1:2)
+levels(myData$V5) <- c(1:2)
 data(VitD) #dataset available within the bnlearn library
 VitD$ageCat <- cut(VitD$age,c(0,60,80))
 VitD$vitdCat <- cut(VitD$vitd,c(0,30,205))
 VitD$timeCat <- cut(VitD$time, c(0,16,18))
 VitD$filaggrinCat <- cut(VitD$filaggrin,c(-1,0,1))
 VitD$deathCat <- cut(VitD$death,c(-1,0,1))
-myData <- data.frame(VitD$filaggrinCat,VitD$ageCat,VitD$deathCat,VitD$vitdCat) #with filaggrin instead of time
-names(myData) <- c("V1","V2","V3","V4") #This relabels the variables in the dataset with the variable names produced by CStrees(p,2).
+myData <- data.frame(VitD$filaggrinCat,VitD$timeCat,VitD$ageCat,VitD$deathCat,VitD$vitdCat) #with filaggrin instead of time
+names(myData) <- c("V1", "V4","V5","V2","V3") #This relabels the variables in the dataset with the variable names produced by CStrees(p,2).
 levels(myData$V1) <- c(1:2) #This relabels the outcomes to match the outcome names used by CStrees(p,2).
 levels(myData$V2) <- c(1:2)
 levels(myData$V3) <- c(1:2)
 levels(myData$V4) <- c(1:2)
+levels(myData$V5) <- factor(c("Int","Obs"))
 # From here on we construct the interventional CStrees
-Parts<- partitions(3)
+mecParts<- list(list(list(list("1","1")),
+                list(list("1","2","3","4")),
+                list(list("1","3"),list("2","4"),list("5","6","7","8"))
+               ))
+##----## Linear extension = 4 1 2 3
+L1 = list(list("1","1"))
+L2 = list(list("1","2","3","4"))
+L3 = list(list("1","3"),list("2","4"),list("5","6","7","8"))
+#--------------------------------------------------------------
 listInterventionalCStrees<-list()
-for (part in Parts){
-  ObsTree<-toCStree(3,2,part)
+for (part in mecParts){
+  ObsTree<-toCStree(4,2,part)
   Smore <- stages(ObsTree)
   S<-lapply(Smore, unique)
   S<-c(list(list(1)),S)
-  newInterventionalTrees <-interventionalCStrees(3,2,part,S)
+  newInterventionalTrees <-interventionalCStrees(4,2,part,S)
   listInterventionalCStrees<-c(listInterventionalCStrees,newInterventionalTrees)
 }
+
 M<-listInterventionalCStrees[[1]] # initialize with some model
+plot(M)
 M.fit <- sevt_fit(M,myData,lambda=1)
 obsM <- subtree(M.fit,c("Obs"))
 intM <- subtree(M.fit,c("Int"))
@@ -559,10 +588,13 @@ for (N in listInterventionalCStrees) {
     t <- s
   }
 }
-
-plot(MM)
+intTT1 <- MM
+plot(intTT1)
 t
-# BIC score for age, vitDlevel Mortality -7741.701
+# Summary for results for interventional learning
+
+# 4,1,2,3,BIC = -12217.49 (df=7)
+
 # BIC score for vitDlevel,age, Mortality -7742.051
 P1fit <-MM
 # BIC score for age, Mortality,vitDlevel -7749.854
@@ -578,7 +610,11 @@ L1 = list(list("1","1"))
 L2 = list(list("1","2","3","4"))
 L3 = list(list("1","3"),list("2","4"),list("5","6","7","8"))
 TT1 <- toCStree(4,2,list(L1,L2,L3))
-plot(newTT)
+permsTT1 <- allPermsCStrees(list(L1,L2,L3),4,2)
+length(permsTT1)
+plot(TT1)
+plot(permsTT1[[4]])
+permsTT1
 ## Second tree in the equivalence class
 ## Linear extension = 4 2 1 3
 L1 = list(list("1","2"))
@@ -612,14 +648,20 @@ L3 = list(list("1","3"),list("5","7"),list("2","4","6","8"))
 TT6 <- toCStree(4,2,list(L1,L2,L3))
 
 
-
+myData <- subset(myData,select = -c(filaggrin,death))
 ## Soil analysis
+#myTotalData[which(myTotalData$filaggrin == 0),]
 dataSoil = read.csv("Dataset_Dec_2019_R1.csv",header=TRUE)
 summary(dataSoil)
-mySoilData = data.frame(dataSoil$Elevation,dataSoil$MAT,dataSoil$All_potential_pathogens,dataSoil$Soil_C)
-summary(mySoilData)
+attach(dataSoil)
+myAllSoilData <- data.frame(dataSoil$Elevation,dataSoil$MAT,dataSoil$All_potential_pathogens,dataSoil$Soil_C,dataSoil$Grassland)
+mySoilData <- myAllSoilData[which(myAllSoilData$dataSoil.Grassland==1),]
+mySoilData <- subset(mySoilData, select = -c(dataSoil.Grassland))
+# N = 81
 mySoilData <- discretize(mySoilData,method="quantile",breaks=2) 
-summary(mySoilData)
+names(mySoilData)
+levels(mySoilData$dataSoil.Elevation)
+# V1 = elevation, V2 = MAT(mean annual temperature), V3 = Allpathogens, V4 = Soil_Carbon
 names(mySoilData) <- c("V1","V2","V3","V4") #Relabel the variables in the dataset with the variable names produced by CStrees(p,d)
 levels(mySoilData$V1) <- c(1:2)
 levels(mySoilData$V2) <- c(1:2)
@@ -640,9 +682,10 @@ for (N in CStreesList) {
 }
 plot(MM)
 summary(MM)
+
 # V1= elevation, V2 = MAT(mean annual temperature), V3 = All pathogens, V4 = soil Carbon
 mySoilData = data.frame(dataSoil$Elevation,dataSoil$MAT,dataSoil$All_potential_pathogens,dataSoil$Soil_C)
-levels(mySoilData$dataSoil.Elevation)
+mySoilData <- discretize(mySoilData,method="quantile",breaks=2) 
 
 mySoilData$landcover<- dataSoil$Grassland+dataSoil$Forest
 
