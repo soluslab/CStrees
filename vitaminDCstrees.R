@@ -5,13 +5,30 @@
 #----------------- Interventional CStrees ---------------%
 #Learning an interventionalCStree on four levels using the VitD data
 #-------------- Tree #1
+myObsvData <- myTotalData[which(myTotalData$filaggrin == 0),]
+x<-c(200:400) 
+myObsvData<- myObsvData[x,]
+#---
 myData <- VitD
 myData <- subset(myData,select = -c(filaggrin,death)) #truncate the data set to remove all discrete rows.
 myData <- discretize(myData,method="quantile",breaks=2) #discretize all non-discrete variables.
 myData <- cbind(myData,VitD$death,VitD$filaggrin) #append non-interventional discrete variable back into data frame.
+#----
+myTotalData <- VitD
+myObsvData <- myTotalData[which(myTotalData$filaggrin == 0),]
+x<-c(200:400) 
+myObsvData<- myObsvData[x,]
+myInvData<- myTotalData[which(myTotalData$filaggrin==1),]
+myShortData<-rbind(myObsvData,myInvData)
+summary(myShortData)
+nrow(myShortData)
+myData <- subset(myShortData,select = -c(filaggrin,death)) #truncate the data set to remove all discrete rows.
+myData <- discretize(myData,method="quantile",breaks=2) #discretize all non-discrete variables.
+myData <- cbind(myData,myShortData$death,myShortData$filaggrin)
+#-----
 names(myData)
 names(myData) <- c("V3","V4","V5","V2","V1") #Relabel the variables in the dataset with the variable names produced by CStrees(p,d)
-levels(myData$V1) <- factor(c("Int","Obs"))
+levels(myData$V1) <- factor(c("Obs","Int"))
 levels(myData$V2) <- c(1:2)
 levels(myData$V3) <- c(1:2)
 levels(myData$V4) <- c(1:2)
@@ -37,7 +54,7 @@ for (part in mecParts){
   listInterventionalCStrees<-c(listInterventionalCStrees,newInterventionalTrees)
 }
 
-M<-listInterventionalCStrees[[10]] # initialize with some model
+M<-listInterventionalCStrees[[14]] # initialize with some model
 plot(M)
 M.fit <- sevt_fit(M,myData,lambda=1)
 obsM <- subtree(M.fit,c("Obs"))
@@ -47,7 +64,8 @@ stagesByLevel<- lapply(stagesByLevel, length)
 numStages<- Reduce("+",stagesByLevel) +1
 numStages
 # Now we evaluate the loglik on each of the subtrees
-t<- (logLik(obsM) + logLik(intM))*2-numStages*log(nrow(myData))
+t<- (logLik(obsM) + logLik(intM))*2
+#t<- logLik(M.fit)*2-numStages*log(nrow(myData))
 MM <- M.fit
 for (N in listInterventionalCStrees) {
   N.fit <- sevt_fit(N,myData,lambda=1)
@@ -56,7 +74,8 @@ for (N in listInterventionalCStrees) {
   stagesByLevel<- lapply(stages(N.fit),unique)
   stagesByLevel<- lapply(stagesByLevel, length)
   numStages<- Reduce("+",stagesByLevel) +1
-  s <- (logLik(obsM) + logLik(intM))*2-numStages*log(nrow(myData))
+#  s<- logLik(N.fit)*2-numStages*log(nrow(myData))
+  s <- (logLik(obsM) + logLik(intM))*2
   if (s > t) {
     MM <- N.fit
     t <- s
@@ -65,6 +84,7 @@ for (N in listInterventionalCStrees) {
 intTT1 <- MM
 plot(intTT1)
 t1<-t
+t
 logLik(obsM)
 logLik(intM)
 #-------------------------------------

@@ -283,7 +283,10 @@ library("entropy")
 data(VitD) #dataset available within the ivtools library
 myTotalData <- VitD
 
-myObsvData <- myTotalData[which(myTotalData$filaggrin == 0),]
+myObsvData <- myTotalData[which(myTotalData$filaggrin == 1),]
+x<-c(200:400) 
+myObsvData<- myObsvData[x,]
+summary(myObsvData)
 myData <- subset(myObsvData,select = -c(filaggrin,death)) #truncate the data set to remove all discrete rows.
 myData <- discretize(myData,method="quantile",breaks=2) #discretize all non-discrete variables.
 myData <- cbind(myData,myObsvData$death) #append non-interventional discrete variable back into data frame.
@@ -648,26 +651,27 @@ L3 = list(list("1","3"),list("5","7"),list("2","4","6","8"))
 TT6 <- toCStree(4,2,list(L1,L2,L3))
 
 
-myData <- subset(myData,select = -c(filaggrin,death))
+
 ## Soil analysis
 #myTotalData[which(myTotalData$filaggrin == 0),]
 dataSoil = read.csv("Dataset_Dec_2019_R1.csv",header=TRUE)
 summary(dataSoil)
 attach(dataSoil)
-myAllSoilData <- data.frame(dataSoil$Elevation,dataSoil$MAT,dataSoil$All_potential_pathogens,dataSoil$Soil_C,dataSoil$Grassland)
+myAllSoilData <- data.frame(dataSoil$MAT,dataSoil$All_potential_pathogens,dataSoil$Soil_C,dataSoil$Grassland)
 mySoilData <- myAllSoilData[which(myAllSoilData$dataSoil.Grassland==1),]
 mySoilData <- subset(mySoilData, select = -c(dataSoil.Grassland))
 # N = 81
+nrow(mySoilData)
 mySoilData <- discretize(mySoilData,method="quantile",breaks=2) 
 names(mySoilData)
 levels(mySoilData$dataSoil.Elevation)
 # V1 = elevation, V2 = MAT(mean annual temperature), V3 = Allpathogens, V4 = Soil_Carbon
-names(mySoilData) <- c("V1","V2","V3","V4") #Relabel the variables in the dataset with the variable names produced by CStrees(p,d)
+names(mySoilData) <- c("V1","V2","V3") #Relabel the variables in the dataset with the variable names produced by CStrees(p,d)
 levels(mySoilData$V1) <- c(1:2)
 levels(mySoilData$V2) <- c(1:2)
 levels(mySoilData$V3) <- c(1:2)
-levels(mySoilData$V4) <- c(1:2)
-CStreesList <- CStrees(4,2)
+
+CStreesList <- CStrees(3,2)
 M <- CStreesList[[1]]
 M.fit <- sevt_fit(M,data=mySoilData,lambda=1)
 t <- BIC(M.fit)
@@ -686,13 +690,67 @@ summary(MM)
 # V1= elevation, V2 = MAT(mean annual temperature), V3 = All pathogens, V4 = soil Carbon
 mySoilData = data.frame(dataSoil$Elevation,dataSoil$MAT,dataSoil$All_potential_pathogens,dataSoil$Soil_C)
 mySoilData <- discretize(mySoilData,method="quantile",breaks=2) 
-
 mySoilData$landcover<- dataSoil$Grassland+dataSoil$Forest
+summary(mySoilData)
+names(mySoilData)
+# partition for learned DAG
+names(mySoilData) <- c("V5","V3","V2","V4","V1") #Relabel the variables in the dataset with the variable names produced by CStrees(p,d)
+levels(mySoilData$V1) <- factor(c("Obs","Int"))
+levels(mySoilData$V2) <- c(1:2)
+levels(mySoilData$V3) <- c(1:2)
+levels(mySoilData$V4) <- c(1:2)
+levels(mySoilData$V5) <- c(1:2)
+# Learned tree
+mecParts<- list(list(list(list("1","2")),
+                     list(list("2","4")),
+                     list(list("1","5"),list("2","6"),list("3","4","7","8"))
+))
+L1 = list(list("1","2"))
+L2 = list(list("2","4"))
+L3 = list(list("1","5"),list("2","6"),list("3","4","7","8"))
+soilT <- toCStree(3,2,list(L1,L2,L3))
+plot(soilT)
+#---
+listInterventionalCStrees<-list()
+for (part in mecParts){
+  ObsTree<-toCStree(3,2,part)
+  Smore <- stages(ObsTree)
+  S<-lapply(Smore, unique)
+  S<-c(list(list(1)),S)
+  newInterventionalTrees <-interventionalCStrees(4,2,part,S)
+  listInterventionalCStrees<-c(listInterventionalCStrees,newInterventionalTrees)
+}
 
-
-
-
-
+M<-listInterventionalCStrees[[10]] # initialize with some model
+plot(M)
+M.fit <- sevt_fit(M,mySoilData,lambda=1)
+obsM <- subtree(M.fit,c("Obs"))
+intM <- subtree(M.fit,c("Int"))
+stagesByLevel<- lapply(stages(M.fit),unique)
+stagesByLevel<- lapply(stagesByLevel, length)
+numStages<- Reduce("+",stagesByLevel) +1
+numStages
+# Now we evaluate the loglik on each of the subtrees
+t<- (logLik(obsM) + logLik(intM))*2-numStages*log(nrow(mySoilData))
+MM <- M.fit
+for (N in listInterventionalCStrees) {
+  N.fit <- sevt_fit(N,mySoilData,lambda=1)
+  obsM <- subtree(N.fit,c("Obs"))
+  intM <- subtree(N.fit,c("Int"))
+  stagesByLevel<- lapply(stages(N.fit),unique)
+  stagesByLevel<- lapply(stagesByLevel, length)
+  numStages<- Reduce("+",stagesByLevel) +1
+  s <- (logLik(obsM) + logLik(intM))*2-numStages*log(nrow(mySoilData))
+  if (s > t) {
+    MM <- N.fit
+    t <- s
+  }
+}
+intsoilTT1 <- MM
+plot(intsoilTT1)
+t1<-t
+logLik(obsM)
+logLik(intM)
 
 
 
