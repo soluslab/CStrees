@@ -2,8 +2,8 @@ library("stagedtrees")
 library("combinat")
 
 
-######### Producing the possible stagings for each level in a CStree.  
-######### (For higher dimensions we will need Eliana's code.)
+# Producing the possible stagings for each level in a CStree. 
+# We first generate the partitions of the 1 and 2 dimensional cubes.
 OneDpartitions <- list(list(list("1","1")),
                        list(list("1","2")))
 TwoDpartitions <- list(list(list("1","1")),
@@ -15,6 +15,7 @@ TwoDpartitions <- list(list(list("1","1")),
                        list(list("1","2"),list("3","4")),
                        list(list("1","2","3","4")))
 
+# We now produce the full set of partitions of the 3-dimensional cubes.  
 # The following functions are used to read in the partitions of higher dimensional cubes into the correct format.
 # Takes a string of characters and breaks it down into a list using the delimiter.
 h <- function(mylongstring){
@@ -38,7 +39,7 @@ k <- function(mylist){
   return(unlist(mylist,recursive=FALSE))
 }
 
-### This part creates the ThreeDpartitions
+# This part creates the ThreeDpartitions
 z<-readLines(con = "threeDpartitions.txt")
 listOfchars <- lapply(z, h)
 ThreeDpartitions <-lapply(listOfchars,f)
@@ -46,7 +47,9 @@ ThreeDpartitions <-lapply(ThreeDpartitions,k)
 ThreeDpartitions <- c(ThreeDpartitions,list(list(list("1","1"))))
 length(ThreeDpartitions)
 
-### This part creates the FourDpartitions
+# We also produce a subset of the partitions of the 4-dimensional cube.  These partitions are those that can be
+# recursively constructed by first partitioning the whole cube into two disjoint facets and then partitioning 
+# these two facets.  
 z<-readLines(con = "fourDpartitions.txt")
 listOfchars <- lapply(z, h)
 FourDpartitions <-lapply(listOfchars,f)
@@ -54,11 +57,11 @@ FourDpartitions <-lapply(FourDpartitions,k)
 FourDpartitions <- c(FourDpartitions,list(list(list("1","1"))))
 length(FourDpartitions)
 
-##### A list of lists where the i-th entry is the partitions of the i-dimensional cube.
+# A list of lists where the i-th entry is the partitions of the i-dimensional cube.
 ComputedPartitions = list(OneDpartitions,TwoDpartitions,ThreeDpartitions,FourDpartitions)
 
-##### A function for computing the cross product of partitions of the cubes of dimensions 1,...,p-1.  
-##### The function calls upon the set ComputedPartitions and can only handle values for p up to its cardinality plus 1.
+# A function for computing the cross product of partitions of the cubes of dimensions 1,...,p-1.  
+# The function calls upon the set ComputedPartitions and can only handle values for p up to its cardinality plus 1.
 partitions <- function(p) {
   Parts<-OneDpartitions
   if (p!=2) {
@@ -82,10 +85,10 @@ partitions <- function(p) {
   return(Parts)
 }
 
-#### A function that takes in a number of variables p , a size of outcome space of the variables d, 
-#### and a list of partitions L, one for each level of the tree, ordered by level from smallest-to-largest level.  
-#### It returns a CStree with the staging corresponding to the partitions given in L and causal ordering the
-#### identity permutation of [p].
+# A function that takes in a number of variables p , a size of outcome space of the variables d, 
+# and a list of partitions L, one for each level of the tree, ordered by level from smallest-to-largest level.  
+# It returns a CStree with the staging corresponding to the partitions given in L and causal ordering the
+# identity permutation of [p].
 toCStree <-function(p,d,L) {
   V <-as.list(c(1:p))
   Vars <- list()
@@ -117,10 +120,10 @@ plot(toCStree(5,2,list(OneDpartitions[[2]],TwoDpartitions[[6]],ThreeDpartitions[
 list(OneDpartitions[[2]],TwoDpartitions[[6]],ThreeDpartitions[[130]],FourDpartitions[[50000]])
 
 
-#### A function that produces all CStrees on p variables with each variable having d outcomes.  
-#### It requires that you have computed the set of all partitions of the i-dimensional cube for i< p-1, and added
-#### them to the list ComputedPartitions.
-#### For now, d = 2, as the set ComputedPartitions is defined for only binary variables.  
+# A function that produces all CStrees on p variables with each variable having d outcomes.  
+# It requires that you have computed the set of all partitions of the i-dimensional cube for i< p-1, and added
+# them to the list ComputedPartitions.
+# For now, d = 2, as the set ComputedPartitions is defined for only binary variables.  
 CStrees <- function(p,d) {
   Parts <- partitions(p) 
   Perms <- permn(as.list(c(1:p)))
@@ -165,12 +168,12 @@ CStrees <- function(p,d) {
 
 
 
-##### Example:
+# Example:
 plot(CStrees(3,2)[[1]])
 summary(CStrees(3,2)[[1]])
 
 
-##### Application to Real Data Example:
+# An application to real data:
 library("bnlearn")
 
 data(lizards) #dataset available within the bnlearn library
@@ -181,7 +184,7 @@ levels(myData$V2) <- c(1:2)
 levels(myData$V3) <- c(1:2)
 CStreesList <- CStrees(3,2)
 
-# The following will recover the BIC optimal CStree for the dataset myData:
+# The following will recover the BIC-optimal CStree for the dataset myData:
 M <- CStreesList[[1]]
 M.fit <- sevt_fit(M,data=myData,lambda=1)
 t <- BIC(M.fit)
@@ -201,12 +204,12 @@ for (i in c(1:length(CStreesList))) {
     }
   }
 }
-# The first BIC optimal tree in the list CStreesList is plotted, it and described below.  t is its BIC score. 
+# The first BIC-optimal tree in the list CStreesList is plotted, it and described below.  t is its BIC. 
 plot(MM)
 summary(MM)
 t
 
-# The following set contains the indices i for which CStreesList[[i]] is a BIC optimal tree w.r.t. the myData dataset.
+# The following set contains the indices i for which CStreesList[[i]] is a BIC-optimal tree w.r.t. the myData dataset.
 optTrees
 
 # The original variable names and outcomes for each variable are given by the following:
@@ -216,18 +219,19 @@ levels(lizards$Diameter)
 levels(lizards$Height)
 
 
-##### Fitting a CStree to a data set for coronary heart data set.
-data(coronary) #dataset available within the bnlearn library
+# Fitting a CStree to a data set for coronary heart data set.
+data(coronary) # dataset available within the bnlearn library
 myData <- coronary
-names(myData) <- c("V1","V2","V3","V4","V5","V6") #this function relabels the variables in the dataset with the variable names produced by CStrees(p,d)
+names(myData) <- c("V1","V2","V3","V4","V5","V6") # This function relabels the variables in the dataset with the variable names produced by CStrees(p,d)
 levels(myData$V1) <- c(1:2)
 levels(myData$V2) <- c(1:2)
 levels(myData$V3) <- c(1:2)
 levels(myData$V4) <- c(1:2)
 levels(myData$V5) <- c(1:2)
 levels(myData$V6) <- c(1:2)
-myData <- subset(myData,select = -c(V4,V5,V6)) #truncate to only variables S, M Work, and P Work.
-CStreesList3 <- CStrees(3,2) # We look for context-specific structure amongst these three environmental factors.
+myData <- subset(myData,select = -c(V4,V5,V6)) # Truncate to only variables S, M Work, and P Work.
+# We look for context-specific structure amongst these three environmental factors.
+CStreesList3 <- CStrees(3,2) 
 M <- CStreesList3[[1]]
 M.fit <- sevt_fit(M,data=myData,lambda=1)
 t <- BIC(M.fit)
@@ -245,18 +249,18 @@ summary(MM)
 t
 
 
-##### Fitting a CStree to a data set for coronary heart data set for a different four variables.  
-##### Here we select a single one of the environment factors considered above and compare it with the other three biological indicators.
+# Fitting a CStree to a data set for coronary heart data set for a set of different four variables.  
+# Here we select a single one of the environment factors considered above and compare it with the other three biological indicators.
 data(coronary) #dataset available within the bnlearn library
 myData <- coronary
-names(myData) <- c("V1","V5","V6","V2","V3","V4") #Relabels the variables in the dataset with the variable names produced by CStrees(p,d)
+names(myData) <- c("V1","V5","V6","V2","V3","V4") # Relabels the variables in the dataset with the variable names produced by CStrees(p,d)
 levels(myData$V1) <- c(1:2)
 levels(myData$V2) <- c(1:2)
 levels(myData$V3) <- c(1:2)
 levels(myData$V4) <- c(1:2)
 levels(myData$V5) <- c(1:2)
 levels(myData$V6) <- c(1:2)
-myData <- subset(myData,select = -c(V5,V6)) #truncate the data set to include a single covariate from S, M Work, and P Work. In this example, we include S.
+myData <- subset(myData,select = -c(V5,V6)) # Truncate the data set to include a single covariate from S, M Work, and P Work. In this example, we include S.
 CStreesList <- CStrees(4,2) # Although the data set has 6 variables we fit a model to only the first four.
 M <- CStreesList[[1]]
 M.fit <- sevt_fit(M,data=myData,lambda=1)
@@ -287,9 +291,9 @@ myObsvData <- myTotalData[which(myTotalData$filaggrin == 1),]
 x<-c(200:400) 
 myObsvData<- myObsvData[x,]
 summary(myObsvData)
-myData <- subset(myObsvData,select = -c(filaggrin,death)) #truncate the data set to remove all discrete rows.
-myData <- discretize(myData,method="quantile",breaks=2) #discretize all non-discrete variables.
-myData <- cbind(myData,myObsvData$death) #append non-interventional discrete variable back into data frame.
+myData <- subset(myObsvData,select = -c(filaggrin,death)) # Truncate the data set to remove all discrete rows.
+myData <- discretize(myData,method="quantile",breaks=2) # Discretize all non-discrete variables.
+myData <- cbind(myData,myObsvData$death) # Append non-interventional discrete variable back into data frame.
 names(myData)
 names(myData) <- c("V1","V2","V3","V4") #Relabel the variables in the dataset with the variable names produced by CStrees(p,d)
 levels(myData$V1) <- c(1:2)
@@ -322,12 +326,12 @@ t
 
 # Interventional CStrees for one observed distribution and one interventional distribution.
 
-#### A function that takes in a number of variables p, a size of outcome space of the variables d, 
-#### a list of partitions L, one for each level of the tree, ordered by level from smallest-to-largest level, and a
-#### list of stages targeted for intervention.  I is broken into a list of lists, one list of stages for each level.
-#### Each stage in I must be a number between 1 and 2^(i-1) if the stage is associated to level i.
-#### It returns an interventional CStree with the staging corresponding to the partitions given in L and causal ordering the
-#### identity permutation of [p].
+# A function that takes in a number of variables p, a size of outcome space of the variables d, 
+# a list of partitions L, one for each level of the tree, ordered by level from smallest-to-largest level, and a
+# list of stages targeted for intervention.  I is broken into a list of lists, one list of stages for each level.
+# Each stage in I must be a number between 1 and 2^(i-1) if the stage is associated to level i.
+# It returns an interventional CStree with the staging corresponding to the partitions given in L and causal 
+# ordering the identity permutation of [p].
 toInterventionalCStree <-function(p,d,L,I) {
   ObsL <- L
   IntL <- L
@@ -398,7 +402,6 @@ TestIntTree <- toInterventionalCStree(3,2,TestL,I)
 plot(TestIntTree)
 summary(TestIntTree)
 
-
 # Example on four variables
 Parts <- partitions(4)
 TestL <- Parts[[1000]]
@@ -419,8 +422,6 @@ I <- list(list(1),list(1),list(3),list(3,5))
 TestIntTree <- toInterventionalCStree(4,2,TestL,I)
 plot(TestIntTree)
 summary(TestIntTree)
-
-
 
 # Example on five variables
 TestL <- list(OneDpartitions[[2]],TwoDpartitions[[6]],ThreeDpartitions[[130]],FourDpartitions[[50000]])
@@ -489,8 +490,8 @@ S3 <- unique(stages(ObsTree,paste("V",3,sep= "")))
 S <- list(list(1),S2,S3)
 S
 
-# Then construct all interventional CStrees where ObsTree is the observational tree and there is one other intervention target.
-# All possible subsets for the stages of ObsTree are considered for the second target.
+# Then construct all interventional CStrees where ObsTree is the observational tree and there is one other 
+# intervention target. All possible subsets for the stages of ObsTree are considered for the second target.
 TestTrees <- interventionalCStrees(3,2,TestL,S)
 length(TestTrees)
 plot(TestTrees[[1]])
@@ -511,8 +512,8 @@ S5 <- unique(stages(ObsTree,paste("V",5,sep= "")))
 S <- list(list(),S2,S3,S4,S5)
 S
 
-# Then construct all interventional CStrees where ObsTree is the observational tree and there is one other intervention target.
-# All possible subsets for the stages of ObsTree are considered for the second target.
+# Then construct all interventional CStrees where ObsTree is the observational tree and there is one other 
+# intervention target. All possible subsets for the stages of ObsTree are considered for the second target.
 TestTrees <- interventionalCStrees(5,2,TestL,S)
 length(TestTrees) 
 plot(TestTrees[[1]])
@@ -520,240 +521,68 @@ plot(TestTrees[[2871]])
 summary(TestTrees[[1]])
 summary(TestTrees[[2871]])
 
-#----------------- Interventional CStrees ---------------%
-#Learning an interventionalCStree on three levels using the VitD data
-myData <- VitD
-myData <- subset(myData,select = -c(filaggrin,death)) #truncate the data set to remove all discrete rows.
-myData <- discretize(myData,method="quantile",breaks=2) #discretize all non-discrete variables.
-myData <- cbind(myData,VitD$death,VitD$filaggrin) #append non-interventional discrete variable back into data frame.
-names(myData)
-names(myData) <- c("V3","V4","V5","V2","V1") #Relabel the variables in the dataset with the variable names produced by CStrees(p,d)
-levels(myData$V1) <- factor(c("Int","Obs"))
-levels(myData$V2) <- c(1:2)
-levels(myData$V3) <- c(1:2)
-levels(myData$V4) <- c(1:2)
-levels(myData$V5) <- c(1:2)
-data(VitD) #dataset available within the bnlearn library
-VitD$ageCat <- cut(VitD$age,c(0,60,80))
-VitD$vitdCat <- cut(VitD$vitd,c(0,30,205))
-VitD$timeCat <- cut(VitD$time, c(0,16,18))
-VitD$filaggrinCat <- cut(VitD$filaggrin,c(-1,0,1))
-VitD$deathCat <- cut(VitD$death,c(-1,0,1))
-myData <- data.frame(VitD$filaggrinCat,VitD$timeCat,VitD$ageCat,VitD$deathCat,VitD$vitdCat) #with filaggrin instead of time
-names(myData) <- c("V1", "V4","V5","V2","V3") #This relabels the variables in the dataset with the variable names produced by CStrees(p,2).
-levels(myData$V1) <- c(1:2) #This relabels the outcomes to match the outcome names used by CStrees(p,2).
-levels(myData$V2) <- c(1:2)
-levels(myData$V3) <- c(1:2)
-levels(myData$V4) <- c(1:2)
-levels(myData$V5) <- factor(c("Int","Obs"))
-# From here on we construct the interventional CStrees
-mecParts<- list(list(list(list("1","1")),
-                list(list("1","2","3","4")),
-                list(list("1","3"),list("2","4"),list("5","6","7","8"))
-               ))
-##----## Linear extension = 4 1 2 3
-L1 = list(list("1","1"))
-L2 = list(list("1","2","3","4"))
-L3 = list(list("1","3"),list("2","4"),list("5","6","7","8"))
-#--------------------------------------------------------------
-listInterventionalCStrees<-list()
-for (part in mecParts){
-  ObsTree<-toCStree(4,2,part)
-  Smore <- stages(ObsTree)
-  S<-lapply(Smore, unique)
-  S<-c(list(list(1)),S)
-  newInterventionalTrees <-interventionalCStrees(4,2,part,S)
-  listInterventionalCStrees<-c(listInterventionalCStrees,newInterventionalTrees)
-}
 
-M<-listInterventionalCStrees[[1]] # initialize with some model
-plot(M)
-M.fit <- sevt_fit(M,myData,lambda=1)
-obsM <- subtree(M.fit,c("Obs"))
-intM <- subtree(M.fit,c("Int"))
-stagesByLevel<- lapply(stages(M.fit),unique)
-stagesByLevel<- lapply(stagesByLevel, length)
-numStages<- Reduce("+",stagesByLevel) +1
-numStages
-# Now we evaluate the loglik on each of the subtrees
-t<- (logLik(obsM) + logLik(intM))*2-numStages*log(nrow(myData))
-MM <- M.fit
-for (N in listInterventionalCStrees) {
-  N.fit <- sevt_fit(N,myData,lambda=1)
-  obsM <- subtree(N.fit,c("Obs"))
-  intM <- subtree(N.fit,c("Int"))
-  stagesByLevel<- lapply(stages(N.fit),unique)
-  stagesByLevel<- lapply(stagesByLevel, length)
-  numStages<- Reduce("+",stagesByLevel) +1
-  s <- (logLik(obsM) + logLik(intM))*2-numStages*log(nrow(myData))
-  if (t > s) {
-    MM <- N.fit
-    t <- s
+# A function for producing fitted interventional CStrees.  The function returns a list of lists in which 
+# the first element is the interventionalCStree, the second is its penalized log-likelihood given the data,
+# where the penalization term is adjusted to account for the magnitude of the causal effect of each intervention
+# target learned, and the third is the sum of the magnitudes of these causal effects.  
+# currently entries 4, 5 6, and 7 also record the log-likelihood of the interventional CStree, the log-likelihood 
+# of its observational subtree, the log-likelihood of its interventional subtree and its BIC, respectively. 
+fittedInterventionalCStrees <- function(p,d,L,S,Dat) {
+  Trees <- list()
+  Targets <- list(list(),list("1"))
+  s <- length(S)
+  if (p!=2) {
+    for (i in c(2:s)) {
+      P <- list()
+      LevelTargs <- list(list())
+      for (j in c(1:length(S[[i]]))) {
+        LevelTargs <- c(LevelTargs,combn(S[[i]],j,simplify=FALSE))
+      }
+      for (I in Targets) {
+        for (M in LevelTargs) {
+          if (i!=2) {
+            P<-c(P,list(c(I,list(M))))
+          } else {
+            P<-c(P,list(list(I,M)))
+          }
+        }
+        Targets <- P
+      }
+    }
   }
-}
-intTT1 <- MM
-plot(intTT1)
-t
-# Summary for results for interventional learning
-
-# 4,1,2,3,BIC = -12217.49 (df=7)
-
-# BIC score for vitDlevel,age, Mortality -7742.051
-P1fit <-MM
-# BIC score for age, Mortality,vitDlevel -7749.854
-P2fit <- MM
-length(listInterventionalCStrees) #Total number of interventionalCStrees
-plot(listInterventionalCStrees[[300]]) # Testing how one of the interventionalCSTrees looks like
-###--------------------------
-
-## Trees in the equivalence class of the learned tree.
-## First tree in the equivalence class
-## Linear extension = 4 1 2 3
-L1 = list(list("1","1"))
-L2 = list(list("1","2","3","4"))
-L3 = list(list("1","3"),list("2","4"),list("5","6","7","8"))
-TT1 <- toCStree(4,2,list(L1,L2,L3))
-permsTT1 <- allPermsCStrees(list(L1,L2,L3),4,2)
-length(permsTT1)
-plot(TT1)
-plot(permsTT1[[4]])
-permsTT1
-## Second tree in the equivalence class
-## Linear extension = 4 2 1 3
-L1 = list(list("1","2"))
-L2 = list(list("1","2"),list("3","4"))
-L3 = list(list("1","2"),list("3","4"),list("5","6","7","8"))
-TT2 <- toCStree(4,2,list(L1,L2,L3))
-## Third tree in the equivalence class
-## Linear extension = 2 4 1 3
-L1 = list(list("1","2"))
-L2 = list(list("1","3"),list("2","4"))
-L3 = list(list("1","2"),list("5","6"),list("3","4","7","8"))
-TT3 <- toCStree(4,2,list(L1,L2,L3))
-# Fourth tree in the equivalence class
-## Linear extension = 1 4 2 3
-L1 = list(list("1","1"))
-L2 = list(list("1","3","2","4"))
-L3 = list(list("1","5"),list("2","6"),list("3","4","7","8"))
-TT4 <- toCStree(4,2,list(L1,L2,L3))
-# Fifth tree in the partition
-## Linear extension = 1 2 4 3
-L1 = list(list("1","2"))
-L2 = list(list("1","2"),list("3","4"))
-L3 = list(list("1","5"),list("3","7"),list("2","4","6","8"))
-TT5 <- toCStree(4,2,list(L1,L2,L3))
-plot(TT5)
-#Sixth tree in the partition
-## Linear extension = 2 1 4 3
-L1 = list(list("1","2"))
-L2 = list(list("1","3"),list("2","4"))
-L3 = list(list("1","3"),list("5","7"),list("2","4","6","8"))
-TT6 <- toCStree(4,2,list(L1,L2,L3))
-
-
-
-## Soil analysis
-#myTotalData[which(myTotalData$filaggrin == 0),]
-dataSoil = read.csv("Dataset_Dec_2019_R1.csv",header=TRUE)
-summary(dataSoil)
-attach(dataSoil)
-myAllSoilData <- data.frame(dataSoil$MAT,dataSoil$All_potential_pathogens,dataSoil$Soil_C,dataSoil$Grassland)
-mySoilData <- myAllSoilData[which(myAllSoilData$dataSoil.Grassland==1),]
-mySoilData <- subset(mySoilData, select = -c(dataSoil.Grassland))
-# N = 81
-nrow(mySoilData)
-mySoilData <- discretize(mySoilData,method="quantile",breaks=2) 
-names(mySoilData)
-levels(mySoilData$dataSoil.Elevation)
-# V1 = elevation, V2 = MAT(mean annual temperature), V3 = Allpathogens, V4 = Soil_Carbon
-names(mySoilData) <- c("V1","V2","V3") #Relabel the variables in the dataset with the variable names produced by CStrees(p,d)
-levels(mySoilData$V1) <- c(1:2)
-levels(mySoilData$V2) <- c(1:2)
-levels(mySoilData$V3) <- c(1:2)
-
-CStreesList <- CStrees(3,2)
-M <- CStreesList[[1]]
-M.fit <- sevt_fit(M,data=mySoilData,lambda=1)
-t <- BIC(M.fit)
-MM <- M.fit
-for (N in CStreesList) {
-  N.fit <- sevt_fit(N,data=mySoilData,lambda=1)
-  s <- BIC(N.fit)
-  if (t > s) {
-    MM <- N.fit
-    t <- s
+  for (I in Targets) {
+    ICST <- sevt_fit(toInterventionalCStree(p,2,L,I),Dat,lambda=1)
+    obsICST <- subtree(ICST,c("Obs"))
+    intICST <- subtree(ICST,c("Int"))
+    stagesByLevel<- lapply(stages(ICST),unique)
+    stagesByLevel<- lapply(stagesByLevel, length)
+    numStages<- Reduce("+",stagesByLevel) +1
+    CE <- c()
+    for (j in c(2:(p+1))) {
+      U <- as.list(unique(stages(model.CS,paste("V",j,sep = ""))))
+      V <- U[as.integer(U)<=2^(j-2)]
+      stageeffects <-c()
+      count <- 1
+      for (i in V) {
+        if (is.element(toString((as.integer(i)+(2^(j-2)))),U) == TRUE) {
+          count <- count+1
+          probObs <- eval(parse(text = paste("obsICST$prob$V",j,"$`",i,"`",sep = "")))
+          probInt <- eval(parse(text = paste("intICST$prob$V",j,"$`",toString((as.integer(i)+(2^(j-2)))),"`",sep = "")))
+          ce <- abs((probInt[1]+2*probInt[2])-(probObs[1]+2*probObs[2]))
+          stageeffects <-c(stageeffects,ce)
+        }
+        CE <- c(CE,sum(stageeffects))
+        #      CE <- c(CE,sum(stageeffects)/(length(eval(parse(text = paste("obsICST$stages$V",j,sep = ""))))))
+      }
+    }
+    causalEffect <- sum(CE)
+    s <- (logLik(obsICST) + logLik(intICST))*2-(numStages-(causalEffect))*log(nrow(Dat))
+    b <- (logLik(obsICST) + logLik(intICST))*2-(numStages)*log(nrow(Dat))
+    Trees <- c(Trees,list(list(list(ICST),list(s),list((logLik(obsICST) + logLik(intICST))),list(causalEffect),list(logLik(obsICST)),list((logLik(intICST))),list(b))))
   }
-}
-plot(MM)
-summary(MM)
-
-# V1= elevation, V2 = MAT(mean annual temperature), V3 = All pathogens, V4 = soil Carbon
-mySoilData = data.frame(dataSoil$Elevation,dataSoil$MAT,dataSoil$All_potential_pathogens,dataSoil$Soil_C)
-mySoilData <- discretize(mySoilData,method="quantile",breaks=2) 
-mySoilData$landcover<- dataSoil$Grassland+dataSoil$Forest
-summary(mySoilData)
-names(mySoilData)
-# partition for learned DAG
-names(mySoilData) <- c("V5","V3","V2","V4","V1") #Relabel the variables in the dataset with the variable names produced by CStrees(p,d)
-levels(mySoilData$V1) <- factor(c("Obs","Int"))
-levels(mySoilData$V2) <- c(1:2)
-levels(mySoilData$V3) <- c(1:2)
-levels(mySoilData$V4) <- c(1:2)
-levels(mySoilData$V5) <- c(1:2)
-# Learned tree
-mecParts<- list(list(list(list("1","2")),
-                     list(list("2","4")),
-                     list(list("1","5"),list("2","6"),list("3","4","7","8"))
-))
-L1 = list(list("1","2"))
-L2 = list(list("2","4"))
-L3 = list(list("1","5"),list("2","6"),list("3","4","7","8"))
-soilT <- toCStree(3,2,list(L1,L2,L3))
-plot(soilT)
-#---
-listInterventionalCStrees<-list()
-for (part in mecParts){
-  ObsTree<-toCStree(3,2,part)
-  Smore <- stages(ObsTree)
-  S<-lapply(Smore, unique)
-  S<-c(list(list(1)),S)
-  newInterventionalTrees <-interventionalCStrees(4,2,part,S)
-  listInterventionalCStrees<-c(listInterventionalCStrees,newInterventionalTrees)
+  return(Trees)
 }
 
-M<-listInterventionalCStrees[[10]] # initialize with some model
-plot(M)
-M.fit <- sevt_fit(M,mySoilData,lambda=1)
-obsM <- subtree(M.fit,c("Obs"))
-intM <- subtree(M.fit,c("Int"))
-stagesByLevel<- lapply(stages(M.fit),unique)
-stagesByLevel<- lapply(stagesByLevel, length)
-numStages<- Reduce("+",stagesByLevel) +1
-numStages
-# Now we evaluate the loglik on each of the subtrees
-t<- (logLik(obsM) + logLik(intM))*2-numStages*log(nrow(mySoilData))
-MM <- M.fit
-for (N in listInterventionalCStrees) {
-  N.fit <- sevt_fit(N,mySoilData,lambda=1)
-  obsM <- subtree(N.fit,c("Obs"))
-  intM <- subtree(N.fit,c("Int"))
-  stagesByLevel<- lapply(stages(N.fit),unique)
-  stagesByLevel<- lapply(stagesByLevel, length)
-  numStages<- Reduce("+",stagesByLevel) +1
-  s <- (logLik(obsM) + logLik(intM))*2-numStages*log(nrow(mySoilData))
-  if (s > t) {
-    MM <- N.fit
-    t <- s
-  }
-}
-intsoilTT1 <- MM
-plot(intsoilTT1)
-t1<-t
-logLik(obsM)
-logLik(intM)
-
-
-
-
-
+# This last function is used in the analysis of the mice protein expression data set analyzed in the file mice.R. 
 

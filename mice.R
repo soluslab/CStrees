@@ -64,7 +64,7 @@ fittedInterventionalCStrees <- function(p,d,L,S,Dat) {
   return(Trees)
 }
 
-#Mice data: importing data set from UCI Machine Learning Repository-----
+# Mice data: importing data set from UCI Machine Learning Repository.
 library(gdata)
 myCortexdf <- read.xls("Data_Cortex_Nuclear.xls", sheet = 1, header = TRUE)
 summary(myCortexdf)
@@ -74,17 +74,17 @@ myObsCortex<- subset(myCortexdf,myCortexdf$class == "c-SC-s", select = c(pPKCG_N
 summary(myObsCortex)
 nrow(myObsCortex)
 
-# Then we discretize by quantile
+# Then we discretize by quantile:
 myObsCortex$pPKCG_Ncat <- cut(myObsCortex$pPKCG_N,quantile(myObsCortex$pPKCG_N, probs = c(0,0.5,1)),include.lowest =TRUE)
 myObsCortex$pNUMB_Ncat <- cut(myObsCortex$pNUMB_N,quantile(myObsCortex$pNUMB_N, probs = c(0,0.5,1)),include.lowest =TRUE)
 myObsCortex$pNR1_Ncat  <- cut(myObsCortex$pNR1_N,quantile(myObsCortex$pNR1_N, probs = c(0,0.5,1)),include.lowest =TRUE)
 myObsCortex$pCAMKII_Ncat  <- cut(myObsCortex$pCAMKII_N,quantile(myObsCortex$pCAMKII_N, probs = c(0,0.5,1)),include.lowest =TRUE)
 
-# After discretization, we learn the BIC optimal CStree on the observed data; 
-# that is, the samples with class c-SC-s.  The interventional data will be those with class c-SC-m.
+# After discretization, we learn the BIC-optimal CStree for the observed data; that is, the samples with 
+# class c-SC-s.  The interventional data will be those with class c-SC-m.
 myObsdata <- data.frame(myObsCortex$pPKCG_Ncat,myObsCortex$pNUMB_Ncat,myObsCortex$pNR1_Ncat,myObsCortex$pCAMKII_Ncat)                    
-names(myObsdata) <- c("V1","V2","V3","V4") #This relabels the variables in the dataset with the variable names produced by CStrees(p,2).
-levels(myObsdata$V1) <- c(1:2) #This relabels the outcomes to match the outcome names used by CStrees(p,2).
+names(myObsdata) <- c("V1","V2","V3","V4") # This relabels the variables in the dataset with the variable names produced by CStrees(p,2).
+levels(myObsdata$V1) <- c(1:2) # This relabels the outcomes to match the outcome names used by CStrees(p,2).
 levels(myObsdata$V2) <- c(1:2)
 levels(myObsdata$V3) <- c(1:2)
 levels(myObsdata$V4) <- c(1:2)
@@ -105,7 +105,7 @@ for (N in CStreesList) {
     t <- s
   }
 }
-# The BIC optimal CStree given the data myObsdata is then:
+# The BIC-optimal CStree given the data myObsdata is then:
 optObsTree <- MM
 plot(optObsTree)
 summary(optObsTree)
@@ -126,7 +126,8 @@ obsLogLik
 # element in each list produced by the function fittedInterventionalCStrees. 
 # There are four CStrees in the equivalence class of optObsTree, each distingushed by its causal ordering.
 # We now learn the optimal interventional CStree for each class, and take the highest scoring of the four
-# learned trees.
+# learned trees.  Altrnatively, we can run the same code with BIC, which is the 7-th entry in the lists output by
+# fittedInterventionalCStrees.  
 
 #-------------- Tree #1 (optObsTree)--------------------------------------------
 ## Causal ordering = 1 2 3 4 
@@ -466,7 +467,7 @@ for (N in CStreesList) {
     t <- s
   }
 }
-# The BIC optimal CStree given the data myObsdata is then:
+# The BIC-optimal CStree given the data myObsdata is then:
 optObsTree <- MM
 plot(optObsTree)
 summary(optObsTree)
@@ -623,49 +624,3 @@ optIntScore2
 optIntScore1 == optIntScore2
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-#### LIAM asks Eliana: What are the following lines for?  Is this scratch work?
-?quantile
-?cut
-x<- cut(myObsCortex$pBRAF_N,quantile(myObsCortex$pBRAF_N, probs = c(0,0.5,1)),include.lowest =TRUE)
-x <- quantile(myObsCortex$pBRAF_N, probs = c(0,0.5,1))
-x
-y<-cut(myObsCortex$pBRAF_N,quantile(myObsCortex$pBRAF_N, probs = c(0,0.5,1)))
-summary(x)
-nrow(y)
-myObsCortex$pBRAF_N[c(100:104)]
-typeof(myObsCortex)
-
-nrow(myObsCortex)
-#---- preprocessing for interventions.
-myIntCortex<- myCortexdf[which(myCortexdf$class== "c-CS-s"),]
-myIntCortex<- subset(myIntCortex,select = c(pBRAF_N,pNUMB_N,pNR1_N,pCAMKII_N))
-summary(myIntCortex)
-nrow(myIntCortex)
-#--------------------------------------------------------------
