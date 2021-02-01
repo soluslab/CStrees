@@ -40,7 +40,7 @@ fittedInterventionalCStrees <- function(p,d,L,S,Dat) {
     numStages<- Reduce("+",stagesByLevel) +1
     CE <- c()
     for (j in c(2:(p+1))) {
-      U <- as.list(unique(stages(model.CS,paste("V",j,sep = ""))))
+      U <- as.list(unique(stages(ICST,paste("V",j,sep = ""))))
       V <- U[as.integer(U)<=2^(j-2)]
       stageeffects <-c()
       count <- 1

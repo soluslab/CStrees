@@ -260,7 +260,8 @@ levels(myData$V3) <- c(1:2)
 levels(myData$V4) <- c(1:2)
 levels(myData$V5) <- c(1:2)
 levels(myData$V6) <- c(1:2)
-myData <- subset(myData,select = -c(V5,V6)) # Truncate the data set to include a single covariate from S, M Work, and P Work. In this example, we include S.
+myData <- subset(myData,select = -c(V1,V5)) # Truncate the data set to include a single covariate from S, M Work, and P Work. In this example, we include S.
+names(myData) <- c("V1","V2","V3","V4")
 CStreesList <- CStrees(4,2) # Although the data set has 6 variables we fit a model to only the first four.
 M <- CStreesList[[1]]
 M.fit <- sevt_fit(M,data=myData,lambda=1)
@@ -279,49 +280,7 @@ summary(MM)
 t
 
 
-##### Fitting a CStree to a data set for Vitamin D deficiency data set.
-# This data set is contained in the package ivtools
-library("ivtools")
-library("entropy")
-#######
-data(VitD) #dataset available within the ivtools library
-myTotalData <- VitD
 
-myObsvData <- myTotalData[which(myTotalData$filaggrin == 1),]
-x<-c(200:400) 
-myObsvData<- myObsvData[x,]
-summary(myObsvData)
-myData <- subset(myObsvData,select = -c(filaggrin,death)) # Truncate the data set to remove all discrete rows.
-myData <- discretize(myData,method="quantile",breaks=2) # Discretize all non-discrete variables.
-myData <- cbind(myData,myObsvData$death) # Append non-interventional discrete variable back into data frame.
-names(myData)
-names(myData) <- c("V1","V2","V3","V4") #Relabel the variables in the dataset with the variable names produced by CStrees(p,d)
-levels(myData$V1) <- c(1:2)
-levels(myData$V2) <- c(1:2)
-levels(myData$V3) <- c(1:2)
-levels(myData$V4) <- c(1:2)
-CStreesList <- CStrees(4,2)
-M <- CStreesList[[1]]
-M.fit <- sevt_fit(M,data=myData,lambda=1)
-t <- BIC(M.fit)
-MM <- M.fit
-for (N in CStreesList) {
-  N.fit <- sevt_fit(N,data=myData,lambda=1)
-  s <- BIC(N.fit)
-  if (t > s) {
-    MM <- N.fit
-    t <- s
-  }
-}
-plot(MM)
-summary(MM)
-logLik(MM)
-t
-
-#--- Summary.
-# N = 2377
-# BIC = 11240.71
-# logLik = -5593.146 (df=7)
 
 
 # Interventional CStrees for one observed distribution and one interventional distribution.
@@ -560,7 +519,7 @@ fittedInterventionalCStrees <- function(p,d,L,S,Dat) {
     numStages<- Reduce("+",stagesByLevel) +1
     CE <- c()
     for (j in c(2:(p+1))) {
-      U <- as.list(unique(stages(model.CS,paste("V",j,sep = ""))))
+      U <- as.list(unique(stages(ICST,paste("V",j,sep = ""))))
       V <- U[as.integer(U)<=2^(j-2)]
       stageeffects <-c()
       count <- 1
