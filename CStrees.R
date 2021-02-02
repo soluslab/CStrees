@@ -260,7 +260,7 @@ levels(myData$V3) <- c(1:2)
 levels(myData$V4) <- c(1:2)
 levels(myData$V5) <- c(1:2)
 levels(myData$V6) <- c(1:2)
-myData <- subset(myData,select = -c(V1,V5)) # Truncate the data set to include a single covariate from S, M Work, and P Work. In this example, we include S.
+myData <- subset(myData,select = -c(V5,V6)) # Truncate the data set to include a single covariate from S, M Work, and P Work. In this example, we include S.
 names(myData) <- c("V1","V2","V3","V4")
 CStreesList <- CStrees(4,2) # Although the data set has 6 variables we fit a model to only the first four.
 M <- CStreesList[[1]]
