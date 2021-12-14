@@ -481,6 +481,12 @@ summary(TestTrees[[1]])
 summary(TestTrees[[2871]])
 
 
+
+###########################################
+
+
+# The following function is not used.  Instead a version of it that is used appears in the file mice.R.
+
 # A function for producing fitted interventional CStrees.  The function returns a list of lists in which 
 # the first element is the interventionalCStree, the second is its penalized log-likelihood given the data,
 # where the penalization term is adjusted to account for the magnitude of the causal effect of each intervention
@@ -543,5 +549,10 @@ fittedInterventionalCStrees <- function(p,d,L,S,Dat) {
   return(Trees)
 }
 
-# This last function is used in the analysis of the mice protein expression data set analyzed in the file mice.R. 
+
+
+
+
+
+
 

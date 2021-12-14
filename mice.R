@@ -3,11 +3,7 @@ setwd("/Users/liamsolus/Dropbox/Research/github-repositories/CStrees/")
 
 
 # A function for producing fitted interventional CStrees.  The function returns a list of lists in which 
-# the first element is the interventionalCStree, the second is its penalized log-likelihood given the data,
-# where the penalization term is adjusted to account for the magnitude of the causal effect of each intervention
-# target learned, and the third is the sum of the magnitudes of these causal effects.  
-# currently entries 4, 5 6, and 7 also record the log-likelihood of the interventional CStree, the log-likelihood 
-# of its observational subtree, the log-likelihood of its interventional subtree and its BIC, respectively. 
+# the first element is the interventionalCStree and the second is its BIC score given the data. 
 fittedInterventionalCStrees <- function(p,d,L,S,Dat) {
   Trees <- list()
   Targets <- list(list(),list("1"))
@@ -38,28 +34,9 @@ fittedInterventionalCStrees <- function(p,d,L,S,Dat) {
     stagesByLevel<- lapply(stages(ICST),unique)
     stagesByLevel<- lapply(stagesByLevel, length)
     numStages<- Reduce("+",stagesByLevel) +1
-    CE <- c()
-    for (j in c(2:(p+1))) {
-      U <- as.list(unique(stages(ICST,paste("V",j,sep = ""))))
-      V <- U[as.integer(U)<=2^(j-2)]
-      stageeffects <-c()
-      count <- 1
-      for (i in V) {
-        if (is.element(toString((as.integer(i)+(2^(j-2)))),U) == TRUE) {
-          count <- count+1
-          probObs <- eval(parse(text = paste("obsICST$prob$V",j,"$`",i,"`",sep = "")))
-          probInt <- eval(parse(text = paste("intICST$prob$V",j,"$`",toString((as.integer(i)+(2^(j-2)))),"`",sep = "")))
-          ce <- abs((probInt[1]+2*probInt[2])-(probObs[1]+2*probObs[2]))
-          stageeffects <-c(stageeffects,ce)
-        }
-        CE <- c(CE,sum(stageeffects))
-        #      CE <- c(CE,sum(stageeffects)/(length(eval(parse(text = paste("obsICST$stages$V",j,sep = ""))))))
-      }
-    }
-    causalEffect <- sum(CE)
-    s <- (logLik(obsICST) + logLik(intICST))*2-(numStages-(causalEffect))*log(nrow(Dat))
     b <- (logLik(obsICST) + logLik(intICST))*2-(numStages)*log(nrow(Dat))
-    Trees <- c(Trees,list(list(list(ICST),list(s),list((logLik(obsICST) + logLik(intICST))),list(causalEffect),list(logLik(obsICST)),list((logLik(intICST))),list(b))))
+    Trees <- c(Trees,list(list(list(ICST),
+                               list(b))))
   }
   return(Trees)
 }
@@ -118,6 +95,14 @@ obsScore
 obsLogLik <- logLik(optObsTree)
 obsLogLik
 
+#----Learning an optimal interventional CStree for the data (c-SC-s,c-SC-m)------------
+# We then learn an optimal element of the equivalence class of optObsTree given the interventional data.  
+# To do so, we score each interventional CStree that arises from any intervention on an element of the 
+# equivalence class of optObsTree, where the score is the BIC of the model. This score is the second entry 
+# in each list object in the output of fittedInterventionalCStrees. 
+# There are four CStrees in the equivalence class of optObsTree, each distingushed by its causal 
+# ordering. We now learn the optimal interventional CStree for each class, and take the highest 
+# scoring of the four learned trees. 
 
 #-------------- Tree #1 (optObsTree)--------------------------------------------
 ## Causal ordering = 1 4 2 3  
@@ -131,7 +116,8 @@ levels(myObsdata$V3) <- c(1:2)
 levels(myObsdata$V4) <- c(1:2)
 levels(myObsdata$V5) <- c(1:2) 
 summary(myObsdata)
-#Then we need to build the interventional discretized data set.
+
+# Then we need to build the interventional discretized data set.
 myIntCortex<- subset(myCortexdf,myCortexdf$class == "c-SC-m", select = c(pCAMKII_N,pPKCG_N,NR1_N,pS6_N,class))
 summary(myIntCortex)
 myIntCortex$pCAMKII_Ncat <- cut(myIntCortex$pCAMKII_N,quantile(myIntCortex$pCAMKII_N, probs = c(0,0.5,1)),include.lowest =TRUE)
@@ -145,6 +131,7 @@ levels(myIntdata$V3) <- c(1:2)
 levels(myIntdata$V4) <- c(1:2)
 levels(myIntdata$V5) <- c(1:2) 
 summary(myIntdata)
+
 # We then combine the discretizeed observed and interventional data sets into a single data frame.
 myMixdata <- rbind(myObsdata,myIntdata)
 myMixdata$V1 <- factor(myMixdata$V1)
@@ -172,9 +159,9 @@ for (part in mecParts){
 # Find the fitted interventional CStree with the highest BIC score.
 MM <- listInterventionalCStrees[[1]]
 plot(MM[[1]][[1]])
-t <- listInterventionalCStrees[[1]][[7]][[1]][1]
+t <- listInterventionalCStrees[[1]][[2]][[1]][1]
 for (N in listInterventionalCStrees) {
-  s <- N[[7]][[1]][1]
+  s <- N[[2]][[1]][1]
   if (s > t) {
     MM <- N
     t <- s
@@ -203,6 +190,7 @@ levels(myObsdata$V3) <- c(1:2)
 levels(myObsdata$V4) <- c(1:2)
 levels(myObsdata$V5) <- c(1:2) 
 summary(myObsdata)
+
 #Then we need to build the interventional discretized data set.
 myIntCortex<- subset(myCortexdf,myCortexdf$class == "c-SC-m", select = c(pCAMKII_N,pPKCG_N,NR1_N,pS6_N,class))
 summary(myIntCortex)
@@ -217,6 +205,7 @@ levels(myIntdata$V3) <- c(1:2)
 levels(myIntdata$V4) <- c(1:2)
 levels(myIntdata$V5) <- c(1:2) 
 summary(myIntdata)
+
 # We then combine the discretizeed observed and interventional data sets into a single data frame.
 myMixdata <- rbind(myObsdata,myIntdata)
 myMixdata$V1 <- factor(myMixdata$V1)
@@ -244,9 +233,9 @@ for (part in mecParts){
 # Find the fitted interventional CStree with the highest BIC score.
 MM <- listInterventionalCStrees[[1]]
 plot(MM[[1]][[1]])
-t <- listInterventionalCStrees[[1]][[7]][[1]][1]
+t <- listInterventionalCStrees[[1]][[2]][[1]][1]
 for (N in listInterventionalCStrees) {
-  s <- N[[7]][[1]][1]
+  s <- N[[2]][[1]][1]
   if (s > t) {
     MM <- N
     t <- s
@@ -264,10 +253,10 @@ optIntScore2
 optIntScore1 == optIntScore2
 
 
+#################################################################################################
 
 
-
-#We now do the same analysis for a second set of four proteins from the same data set.
+# We now do the same analysis for a second set of four proteins from the same data set.
 # Mice data: importing data set from UCI Machine Learning Repository.
 library(gdata)
 myCortexdf <- read.xls("Data_Cortex_Nuclear.xls", sheet = 1, header = TRUE)
@@ -284,8 +273,8 @@ myObsCortex$pNUMB_Ncat <- cut(myObsCortex$pNUMB_N,quantile(myObsCortex$pNUMB_N, 
 myObsCortex$pNR1_Ncat  <- cut(myObsCortex$pNR1_N,quantile(myObsCortex$pNR1_N, probs = c(0,0.5,1)),include.lowest =TRUE)
 myObsCortex$pCAMKII_Ncat  <- cut(myObsCortex$pCAMKII_N,quantile(myObsCortex$pCAMKII_N, probs = c(0,0.5,1)),include.lowest =TRUE)
 
-# After discretization, we learn the BIC-optimal CStree for the observed data; that is, the samples with 
-# class c-SC-s.  The interventional data will be those with class c-SC-m.
+# After discretization, we learn the BIC-optimal CStree for the observed data; that is, the samples 
+# with class c-SC-s.  The interventional data will be those with class c-SC-m.
 myObsdata <- data.frame(myObsCortex$pPKCG_Ncat,myObsCortex$pNUMB_Ncat,myObsCortex$pNR1_Ncat,myObsCortex$pCAMKII_Ncat)                    
 names(myObsdata) <- c("V1","V2","V3","V4") # This relabels the variables in the dataset with the variable names produced by CStrees(p,2).
 levels(myObsdata$V1) <- c(1:2) # This relabels the outcomes to match the outcome names used by CStrees(p,2).
@@ -321,17 +310,13 @@ obsLogLik <- logLik(optObsTree)
 obsLogLik
 
 #----Learning an optimal interventional CStree for the data (c-SC-s,c-SC-m)------------
-# We then learn an optimal element of the equivalence class of optObsTree.  To do so, we score each
-# interventional CStree that arises from any intervention on an element of the equivalence class of optObsTree, 
-# where the score is the penalized log-likelihood is the second entry of the output of the fittedInterventionalCStrees
-#function above.  This score tries to balance between learning a model that optimizes the
-# likelihood of the data while minimizing the number of parameters so that the new parameters introduced to
-# capture the intervention targets should have as large of a causal effect as possible. This score is the second 
-# element in each list produced by the function fittedInterventionalCStrees. 
-# There are four CStrees in the equivalence class of optObsTree, each distingushed by its causal ordering.
-# We now learn the optimal interventional CStree for each class, and take the highest scoring of the four
-# learned trees.  Altrnatively, we can run the same code with BIC, which is the 7-th entry in the lists output by
-# fittedInterventionalCStrees.  
+# We then learn an optimal element of the equivalence class of optObsTree given the interventional data.  
+# To do so, we score each interventional CStree that arises from any intervention on an element of the 
+# equivalence class of optObsTree, where the score is the BIC of the model. This score is the second entry 
+# in each list object in the output of fittedInterventionalCStrees. 
+# There are four CStrees in the equivalence class of optObsTree, each distingushed by its causal 
+# ordering. We now learn the optimal interventional CStree for each class, and take the highest 
+# scoring of the four learned trees. 
 
 #-------------- Tree #1 (optObsTree)--------------------------------------------
 ## Causal ordering = 1 2 3 4 
@@ -345,7 +330,8 @@ levels(myObsdata$V3) <- c(1:2)
 levels(myObsdata$V4) <- c(1:2)
 levels(myObsdata$V5) <- c(1:2) 
 summary(myObsdata)
-#Then we need to build the interventional discretized data set.
+
+# Then we need to build the interventional discretized data set.
 myIntCortex<- subset(myCortexdf,myCortexdf$class == "c-SC-m", select = c(pPKCG_N,pNUMB_N,pNR1_N,pCAMKII_N,class))
 summary(myIntCortex)
 myIntCortex$pPKCG_Ncat <- cut(myIntCortex$pPKCG_N,quantile(myIntCortex$pPKCG_N, probs = c(0,0.5,1)),include.lowest =TRUE)
@@ -359,6 +345,7 @@ levels(myIntdata$V3) <- c(1:2)
 levels(myIntdata$V4) <- c(1:2)
 levels(myIntdata$V5) <- c(1:2) 
 summary(myIntdata)
+
 # We then combine the discretizeed observed and interventional data sets into a single data frame.
 myMixdata <- rbind(myObsdata,myIntdata)
 myMixdata$V1 <- factor(myMixdata$V1)
@@ -407,27 +394,36 @@ optIntTrees <- list(list(optInt1))
 
 #-------------- Tree #2 --------------------------------------------
 ## Causal ordering = 3 2 1 4
-myObsdata <- data.frame(myObsCortex$class,myObsCortex$pPKCG_Ncat,myObsCortex$pNUMB_Ncat,myObsCortex$pNR1_Ncat,myObsCortex$pCAMKII_Ncat)
-names(myObsdata) <- c("V1","V4","V3","V2","V5")
+
+# myObsdata <- data.frame(myObsCortex$class,myObsCortex$pPKCG_Ncat,myObsCortex$pNUMB_Ncat,myObsCortex$pNR1_Ncat,myObsCortex$pCAMKII_Ncat)
+# names(myObsdata) <- c("V1","V4","V3","V2","V5")
+
+myObsdata <- data.frame(myObsCortex$class,myObsCortex$pNR1_Ncat, myObsCortex$pNUMB_Ncat, myObsCortex$pPKCG_Ncat, myObsCortex$pCAMKII_Ncat)
+names(myObsdata) <- c("V1","V2","V3","V4","V5")
 levels(myObsdata$V2) <- c(1:2) #This relabels the outcomes to match the outcome names used by CStrees(p,2).
 levels(myObsdata$V3) <- c(1:2)
 levels(myObsdata$V4) <- c(1:2)
 levels(myObsdata$V5) <- c(1:2) 
 summary(myObsdata)
-#Then we need to build the interventional discretized data set.
+
+# Then we need to build the interventional discretized data set.
 myIntCortex<- subset(myCortexdf,myCortexdf$class == "c-SC-m", select = c(pPKCG_N,pNUMB_N,pNR1_N,pCAMKII_N,class))
 summary(myIntCortex)
 myIntCortex$pPKCG_Ncat <- cut(myIntCortex$pPKCG_N,quantile(myIntCortex$pPKCG_N, probs = c(0,0.5,1)),include.lowest =TRUE)
 myIntCortex$pNUMB_Ncat <- cut(myIntCortex$pNUMB_N,quantile(myIntCortex$pNUMB_N, probs = c(0,0.5,1)),include.lowest =TRUE)
 myIntCortex$pNR1_Ncat  <- cut(myIntCortex$pNR1_N,quantile(myIntCortex$pNR1_N, probs = c(0,0.5,1)),include.lowest =TRUE)
 myIntCortex$pCAMKII_Ncat  <- cut(myIntCortex$pCAMKII_N,quantile(myIntCortex$pCAMKII_N, probs = c(0,0.5,1)),include.lowest =TRUE)
-myIntdata <- data.frame(myIntCortex$class,myIntCortex$pPKCG_Ncat,myIntCortex$pNUMB_Ncat,myIntCortex$pNR1_Ncat,myIntCortex$pCAMKII_Ncat)                    
-names(myIntdata) <- c("V1","V4","V3","V2","V5") #This relabels the variables in the dataset with the variable names produced by CStrees(p,2).
+# myIntdata <- data.frame(myIntCortex$class,myIntCortex$pPKCG_Ncat,myIntCortex$pNUMB_Ncat,myIntCortex$pNR1_Ncat,myIntCortex$pCAMKII_Ncat)                    
+# names(myIntdata) <- c("V1","V4","V3","V2","V5") #This relabels the variables in the dataset with the variable names produced by CStrees(p,2).
+
+myIntdata <- data.frame(myIntCortex$class, myIntCortex$pNR1_Ncat, myIntCortex$pNUMB_Ncat, myIntCortex$pPKCG_Ncat, myIntCortex$pCAMKII_Ncat)                    
+names(myIntdata) <- c("V1","V2","V3","V4","V5")
 levels(myIntdata$V2) <- c(1:2) #This relabels the outcomes to match the outcome names used by CStrees(p,2).
 levels(myIntdata$V3) <- c(1:2)
 levels(myIntdata$V4) <- c(1:2)
 levels(myIntdata$V5) <- c(1:2) 
 summary(myIntdata)
+
 # We then combine the discretizeed observed and interventional data sets into a single data frame.
 myMixdata <- rbind(myObsdata,myIntdata)
 myMixdata$V1 <- factor(myMixdata$V1)
@@ -482,7 +478,8 @@ levels(myObsdata$V3) <- c(1:2)
 levels(myObsdata$V4) <- c(1:2)
 levels(myObsdata$V5) <- c(1:2) 
 summary(myObsdata)
-#Then we need to build the interventional discretized data set.
+
+# Then we need to build the interventional discretized data set.
 myIntCortex<- subset(myCortexdf,myCortexdf$class == "c-SC-m", select = c(pPKCG_N,pNUMB_N,pNR1_N,pCAMKII_N,class))
 summary(myIntCortex)
 myIntCortex$pPKCG_Ncat <- cut(myIntCortex$pPKCG_N,quantile(myIntCortex$pPKCG_N, probs = c(0,0.5,1)),include.lowest =TRUE)
@@ -496,6 +493,7 @@ levels(myIntdata$V3) <- c(1:2)
 levels(myIntdata$V4) <- c(1:2)
 levels(myIntdata$V5) <- c(1:2) 
 summary(myIntdata)
+
 # We then combine the discretizeed observed and interventional data sets into a single data frame.
 myMixdata <- rbind(myObsdata,myIntdata)
 myMixdata$V1 <- factor(myMixdata$V1)
@@ -550,7 +548,8 @@ levels(myObsdata$V3) <- c(1:2)
 levels(myObsdata$V4) <- c(1:2)
 levels(myObsdata$V5) <- c(1:2) 
 summary(myObsdata)
-#Then we need to build the interventional discretized data set.
+
+# Then we need to build the interventional discretized data set.
 myIntCortex<- subset(myCortexdf,myCortexdf$class == "c-SC-m", select = c(pPKCG_N,pNUMB_N,pNR1_N,pCAMKII_N,class))
 summary(myIntCortex)
 myIntCortex$pPKCG_Ncat <- cut(myIntCortex$pPKCG_N,quantile(myIntCortex$pPKCG_N, probs = c(0,0.5,1)),include.lowest =TRUE)
@@ -564,6 +563,7 @@ levels(myIntdata$V3) <- c(1:2)
 levels(myIntdata$V4) <- c(1:2)
 levels(myIntdata$V5) <- c(1:2) 
 summary(myIntdata)
+
 # We then combine the discretizeed observed and interventional data sets into a single data frame.
 myMixdata <- rbind(myObsdata,myIntdata)
 myMixdata$V1 <- factor(myMixdata$V1)
@@ -577,7 +577,8 @@ mecParts<- list(list(list(list("1","1")),
                      list(list("1","5"),list("3","7"),list("2","4","6","8"))
 ))
 
-# Producing the different fitted interventional CStrees possible from intervening on the tree with staging mecParts.
+# Producing the different fitted interventional CStrees possible from intervening on the tree with 
+# staging mecParts.
 listInterventionalCStrees<-list()
 for (part in mecParts){
   ObsTree<-toCStree(4,2,part)
@@ -615,16 +616,80 @@ for (i in c(1: length(optIntTrees))) {
   }
 }
 
-# Hence the optimal interventional CStree is optInt2 which has causal ordering 3 2 1 4.
-# Thus, in the optimal tree V2 = pNR1, V3 = pNUMB, V4 = pPKCG, and V5 = pCAMKII.
-plot(optInt2[[1]][[1]])
+# In this case, we find that all four of the learned trees have the same BIC score.  Collectively, 
+# the four trees are elements of two different interventional statistical equivalence classes, 
+# one of size one and the other of size three, both of which are produced by intervening at 
+# precisely two parameters.  The score equivalence in this case may be attributed to the small 
+# sample size.  Hence we use a bootstrap to distinguish between the two possible interventional 
+# equivalence classes.  Since trees 2,3, and 4 are all in the same interventional equivalence class, we 
+# bootstrap the BIC scores of the trees 1 and 2, computing both scores for each replicated data set.
 
+# We first set the interventional data set (myMixdata) to have columns indexed according to the 
+# causal ordering for tree 1 (1 2 3 4).
+myObsdata <- data.frame(myObsCortex$class,myObsCortex$pPKCG_Ncat,myObsCortex$pNUMB_Ncat,myObsCortex$pNR1_Ncat,myObsCortex$pCAMKII_Ncat)
+names(myObsdata) <- c("V1","V2","V3","V4","V5")
+levels(myObsdata$V2) <- c(1:2) 
+levels(myObsdata$V3) <- c(1:2)
+levels(myObsdata$V4) <- c(1:2)
+levels(myObsdata$V5) <- c(1:2) 
+myIntCortex<- subset(myCortexdf,myCortexdf$class == "c-SC-m", select = c(pPKCG_N,pNUMB_N,pNR1_N,pCAMKII_N,class))
+myIntCortex$pPKCG_Ncat <- cut(myIntCortex$pPKCG_N,quantile(myIntCortex$pPKCG_N, probs = c(0,0.5,1)),include.lowest =TRUE)
+myIntCortex$pNUMB_Ncat <- cut(myIntCortex$pNUMB_N,quantile(myIntCortex$pNUMB_N, probs = c(0,0.5,1)),include.lowest =TRUE)
+myIntCortex$pNR1_Ncat  <- cut(myIntCortex$pNR1_N,quantile(myIntCortex$pNR1_N, probs = c(0,0.5,1)),include.lowest =TRUE)
+myIntCortex$pCAMKII_Ncat  <- cut(myIntCortex$pCAMKII_N,quantile(myIntCortex$pCAMKII_N, probs = c(0,0.5,1)),include.lowest =TRUE)
+myIntdata <- data.frame(myIntCortex$class,myIntCortex$pPKCG_Ncat,myIntCortex$pNUMB_Ncat,myIntCortex$pNR1_Ncat,myIntCortex$pCAMKII_Ncat)                    
+names(myIntdata) <- c("V1","V2","V3","V4","V5") 
+levels(myIntdata$V2) <- c(1:2) 
+levels(myIntdata$V3) <- c(1:2)
+levels(myIntdata$V4) <- c(1:2)
+levels(myIntdata$V5) <- c(1:2) 
+myMixdata <- rbind(myObsdata,myIntdata)
+myMixdata$V1 <- factor(myMixdata$V1)
+levels(myMixdata$V1) <- factor(c("Int","Obs"))
+myMixdata$V1<-relevel(myMixdata$V1,"Obs")
+summary(myMixdata)
 
+# Then we define the bootstrap statistic: a vector in which the first entry is the BIC of the model
+# where we intervene at pNUMB (tree 1), and the second entry is for intervention at pPKCG (tree 2).
+fc <- function(d,i) {
+  d2 <- d[i,]
+  d3 <- d[i,]
+  names(d3) <- c("V1","V4","V3","V2","V5")
+  optIntTree1 <- sevt_fit(optInt1[[1]][[1]],d2)
+  optIntTree2 <- sevt_fit(optInt2[[1]][[1]],d3)
+  stagesByLevel1<- lapply(stages(optIntTree1),unique)
+  stagesByLevel1<- lapply(stagesByLevel1, length)
+  numStages1<- Reduce("+",stagesByLevel1) +1
+  stagesByLevel2<- lapply(stages(optIntTree2),unique)
+  stagesByLevel2<- lapply(stagesByLevel2, length)
+  numStages2<- Reduce("+",stagesByLevel2) +1
+  return(c(
+    (logLik(subtree(optIntTree1,c("Obs")))+logLik(subtree(optIntTree1,c("Int"))))*2-numStages1*log(nrow(d2)),
+    (logLik(subtree(optIntTree2,c("Obs")))+logLik(subtree(optIntTree2,c("Int"))))*2-numStages2*log(nrow(d3))
+  )
+  )
+}
 
+#Bootstrap with seed given for reproducibility:
+set.seed(101)
+bootInt <- boot(myMixdata, fc,R=1000)
+bootInt
 
+#Comparing the bootstrap sample means for the two models, we see that the mean is slightly 
+#higher for intervention at pNUMB.
+pNUMB <- bootInt[[2]][,1]
+pPKCG <- bootInt[[2]][,2]
+mean(pNUMB)
+mean(pPKCG)
 
-
-
+#Bootstrapping with an alternative seed given gives the same result:
+set.seed(560)
+bootInt2 <- boot(myMixdata, fc,R=1000)
+bootInt2
+pNUMB2 <- bootInt2[[2]][,1]
+pPKCG2 <- bootInt2[[2]][,2]
+mean(pNUMB2)
+mean(pPKCG2)
 
 
 
