@@ -156,6 +156,15 @@ for (part in mecParts){
   listInterventionalCStrees<-c(listInterventionalCStrees,newInterventionalTrees)
 }
 
+# Sorting the list of fitted interventional CStrees by BIC.  Last tree in sorted list has highest BIC:
+sortedInterventionalCStrees1 <- listInterventionalCStrees[order(sapply(listInterventionalCStrees,function(x) x[[2]][[1]][[1]]))]
+sortedInterventionalCStrees1[[512]][[2]]
+plot(sortedInterventionalCStrees1[[512]][[1]][[1]])
+
+# The highest scoring tree with complete interventions is number 507:
+plot(sortedInterventionalCStrees1[[507]][[1]][[1]])
+sortedInterventionalCStrees1[[507]][[2]]
+
 # Find the fitted interventional CStree with the highest BIC score.
 MM <- listInterventionalCStrees[[1]]
 plot(MM[[1]][[1]])
@@ -229,6 +238,16 @@ for (part in mecParts){
   newInterventionalTrees <-fittedInterventionalCStrees(4,2,part,S,myMixdata)
   listInterventionalCStrees<-c(listInterventionalCStrees,newInterventionalTrees)
 }
+
+# Sorting the list of fitted interventional CStrees by BIC.  Last tree in sorted list has highest BIC:
+sortedInterventionalCStrees2 <- listInterventionalCStrees[order(sapply(listInterventionalCStrees,function(x) x[[2]][[1]][[1]]))]
+sortedInterventionalCStrees2[[512]][[2]]
+plot(sortedInterventionalCStrees2[[512]][[1]][[1]])
+
+# The highest scoring tree with complete interventions is again number 507 and it is statistically equivalent
+# to the other tree number 507 from the first ordering:
+plot(sortedInterventionalCStrees2[[507]][[1]][[1]])
+sortedInterventionalCStrees2[[507]][[2]]
 
 # Find the fitted interventional CStree with the highest BIC score.
 MM <- listInterventionalCStrees[[1]]
