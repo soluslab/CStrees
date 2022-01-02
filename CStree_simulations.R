@@ -566,7 +566,7 @@ legend("topright", legend=c("True vs. Staged Trees", "True vs. CStrees"),
 
 # Producing the average number of stages for the true trees plot:
 avgNoStages10_7_1_c <- stageTestData(Data_S_10_7_1,10,7)
-plot(x,avgNoStages10_7_1,type = "b",frame=FALSE,pch = 19, col = "red", 
+plot(x,avgNoStages10_7_1_c,type = "b",frame=FALSE,pch = 19, col = "red", 
      xlab = "Probability of Merging (p)", ylab = " Average Number of Stages", 
      xlim = c(0,1),ylim = c(0,130))
 ##########################################################################################################
